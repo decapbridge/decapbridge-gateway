@@ -44,5 +44,12 @@ func (a *API) parseJWTClaims(bearer string, r *http.Request) (context.Context, e
 		return nil, unauthorizedError("Invalid token: %v", err)
 	}
 
-	return withToken(r.Context(), token), nil
+	newCtx := withToken(r.Context(), token)
+	claims := getClaims(newCtx)
+
+	config.GitHub.Repo = claims.AppMetaData["repo"].(string)
+	config.GitHub.AccessToken = claims.AppMetaData["access_token"].(string)
+	
+	return newCtx, nil
+
 }
