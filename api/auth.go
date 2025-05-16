@@ -3,9 +3,12 @@ package api
 import (
 	"context"
 	"net/http"
-
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/sirupsen/logrus"
+	"crypto/aes"
+	"crypto/cipher"
+	"encoding/base64"
+	"strings"
 )
 
 // requireAuthentication checks incoming requests for tokens presented using the Authorization header
@@ -16,7 +19,7 @@ func (a *API) requireAuthentication(w http.ResponseWriter, r *http.Request) (con
 		return nil, err
 	}
 
-	logrus.Infof("Parsing JWT claims: %v", token)
+	logrus.Debugf("Parsing JWT claims: %v", token)
 	return a.parseJWTClaims(token, r)
 }
 
@@ -34,6 +37,45 @@ func (a *API) extractBearerToken(w http.ResponseWriter, r *http.Request) (string
 	return matches[1], nil
 }
 
+func padTo32(str string) string {
+	if len(str) >= 32 {
+		return str[:32]
+	}
+	return str + strings.Repeat("\x00", 32-len(str))
+}
+
+func decrypt(encryptedText, key string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(encryptedText)
+	if err != nil {
+		return "", err
+	}
+
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", err
+	}
+
+	nonceSize := 12
+	authTagSize := 16
+
+	nonce := data[:nonceSize]
+	cipherText := data[nonceSize : len(data)-authTagSize]
+	authTag := data[len(data)-authTagSize:]
+
+	aesGCM, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	plainText, err := aesGCM.Open(nil, nonce, append(cipherText, authTag...), nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(plainText), nil
+}
+
+
 func (a *API) parseJWTClaims(bearer string, r *http.Request) (context.Context, error) {
 	config := getConfig(r.Context())
 	p := jwt.Parser{ValidMethods: []string{jwt.SigningMethodHS256.Name}}
@@ -48,8 +90,19 @@ func (a *API) parseJWTClaims(bearer string, r *http.Request) (context.Context, e
 	claims := getClaims(newCtx)
 
 	config.GitHub.Repo = claims.AppMetaData["repo"].(string)
-	config.GitHub.AccessToken = claims.AppMetaData["access_token"].(string)
-	
-	return newCtx, nil
 
+	maybeEncrypted := claims.AppMetaData["access_token"].(string)
+	if strings.HasPrefix(maybeEncrypted, "encrypted_") {
+		encrypted := strings.TrimPrefix(maybeEncrypted, "encrypted_")
+		decrypted, err := decrypt(encrypted, padTo32(config.JWT.Secret))
+		logrus.Debugf("Encrypted: %s, Decrypted: %s", encrypted, decrypted)
+		if err != nil {
+			return nil, unauthorizedError("Failed to decrypt: %v", err)
+		}
+		config.GitHub.AccessToken = decrypted
+	} else {
+		config.GitHub.AccessToken = maybeEncrypted
+	}
+
+	return newCtx, nil
 }
