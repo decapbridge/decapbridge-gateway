@@ -7,7 +7,7 @@ help: ## Show this help.
 all: lint vet test build ## Run the tests and build the binary.
 
 build: ## Build the binary.
-	go build -ldflags "-X github.com/netlify/git-gateway/cmd.Version=`git rev-parse HEAD`"
+	go build -ldflags "-X github.com/netlify/git-gateway/cmd.Version=$(SOURCE_COMMIT)"
 
 deps: ## Install dependencies.
 	@go get -u golang.org/x/lint/golint

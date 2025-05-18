@@ -1,6 +1,6 @@
 # git-gateway - Gateway to hosted git APIs
 
-> forked from https://github.com/netlify/git-gateway, adapted for DecapBridgeé
+> forked from https://github.com/netlify/git-gateway, adapted for DecapBridge
 
 **Secure role based access to the APIs of common Git Hosting providers.**
 
