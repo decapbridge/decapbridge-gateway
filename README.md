@@ -1,5 +1,7 @@
 # git-gateway - Gateway to hosted git APIs
 
+> forked from https://github.com/netlify/git-gateway, adapted for DecapBridgeé
+
 **Secure role based access to the APIs of common Git Hosting providers.**
 
 When building sites with a JAMstack approach, a common pattern is to store all content as structured data in a Git repository instead of relying on an external database.
@@ -17,6 +19,7 @@ To configure the gateway, see our `example.env` file
 The Gateway limits access to the following sub endpoints of the repository:
 
 for GitHub:
+
 ```
    /repos/:owner/:name/git/
    /repos/:owner/:name/contents/
@@ -28,7 +31,9 @@ for GitHub:
    /repos/:owner/:name/commits/
    /repos/:owner/:name/issues/<number>/labels
 ```
+
 for GitLab:
+
 ```
    /projects/:owner/:name/merge_requests/
    /projects/:owner/:name/repository/files/

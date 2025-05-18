@@ -160,7 +160,7 @@ func NewAPIFromConfigFile(filename string, version string) (*API, error) {
 
 func (a *API) HealthCheck(w http.ResponseWriter, r *http.Request) error {
 	return sendJSON(w, http.StatusOK, map[string]string{
-		"version":     "0.0.2",
+		"version":     "0.0.3",
 		"name":        "decapbridge-git-gateway",
 		"description": "User authentication and authorization for DecapBridge",
 	})
