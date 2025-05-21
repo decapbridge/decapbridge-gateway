@@ -1,6 +1,8 @@
 .PONY: all build deps image lint test
 CHECK_FILES?=$$(go list ./... | grep -v /vendor/)
 
+APPLICATION_NAME:=$(notdir $(CURDIR))
+
 help: ## Show this help.
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {sub("\\\\n",sprintf("\n%22c"," "), $$2);printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
@@ -24,3 +26,9 @@ vet: # Vet the code
 
 test: ## Run tests.
 	go test -v $(CHECK_FILES)
+
+docker-build:
+	docker build -t $(APPLICATION_NAME) .
+
+docker-run: docker-build
+	docker run --env-file .env -p 8081:8081 $(APPLICATION_NAME)

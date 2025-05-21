@@ -89,19 +89,38 @@ func (a *API) parseJWTClaims(bearer string, r *http.Request) (context.Context, e
 	newCtx := withToken(r.Context(), token)
 	claims := getClaims(newCtx)
 
-	config.GitHub.Repo = claims.AppMetaData["repo"].(string)
+	config.GitHub.Repo = ""
+	config.GitHub.AccessToken = ""
+	config.GitLab.Repo = ""
+	config.GitLab.AccessToken = ""
+	
+	logrus.Info("Grabbing gateway details from JWT")
 
-	maybeEncrypted := claims.AppMetaData["access_token"].(string)
-	if strings.HasPrefix(maybeEncrypted, "encrypted_") {
-		encrypted := strings.TrimPrefix(maybeEncrypted, "encrypted_")
+	gitProvider := claims.AppMetaData["git_provider"].(string)
+	repo := claims.AppMetaData["repo"].(string)
+	accessToken := claims.AppMetaData["access_token"].(string)
+
+	if strings.HasPrefix(accessToken, "encrypted_") {
+		logrus.Info("Decrypting access token")
+		encrypted := strings.TrimPrefix(accessToken, "encrypted_")
 		decrypted, err := decrypt(encrypted, padTo32(config.JWT.Secret))
 		logrus.Debugf("Encrypted: %s, Decrypted: %s", encrypted, decrypted)
 		if err != nil {
 			return nil, unauthorizedError("Failed to decrypt: %v", err)
 		}
-		config.GitHub.AccessToken = decrypted
-	} else {
-		config.GitHub.AccessToken = maybeEncrypted
+		accessToken = decrypted
+	}
+
+	if gitProvider == "github" {
+		logrus.Info("Configure github request")
+		config.GitHub.Repo = repo
+		config.GitHub.AccessToken = accessToken
+	}
+
+	if gitProvider == "gitlab" {
+		logrus.Info("Configure gitlab request")
+		config.GitLab.Repo = repo
+		config.GitLab.AccessToken = accessToken
 	}
 
 	return newCtx, nil
