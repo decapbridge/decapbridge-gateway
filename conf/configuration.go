@@ -36,8 +36,8 @@ type BitBucketConfig struct {
 // DBConfiguration holds all the database related configuration.
 type DBConfiguration struct {
 	Dialect     string `json:"dialect"`
-	Driver      string `json:"driver" required:"true"`
-	URL         string `json:"url" envconfig:"DATABASE_URL" required:"true"`
+	Driver      string `json:"driver" default:"sqlite3"`
+	URL         string `json:"url" envconfig:"DATABASE_URL" default:"gorm.db"`
 	Namespace   string `json:"namespace"`
 	Automigrate bool   `json:"automigrate"`
 }
