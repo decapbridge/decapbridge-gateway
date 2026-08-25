@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"context"
 	"errors"
 	"fmt"
@@ -82,6 +83,17 @@ func (e *HTTPError) Error() string {
 		return e.InternalMessage
 	}
 	return fmt.Sprintf("%d: %s", e.Code, e.Message)
+}
+
+// MarshalJSON emits the message under both "msg" (legacy git-gateway key) and
+// "message", which Decap CMS reads; without it every error renders as
+// "Git Gateway Error: [object Object]".
+func (e *HTTPError) MarshalJSON() ([]byte, error) {
+	type alias HTTPError
+	return json.Marshal(&struct {
+		*alias
+		MessageCompat string `json:"message"`
+	}{alias: (*alias)(e), MessageCompat: e.Message})
 }
 
 // Cause returns the root cause error
