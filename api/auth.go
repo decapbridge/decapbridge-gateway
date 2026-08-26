@@ -86,7 +86,9 @@ func (a *API) parseJWTClaims(bearer string, r *http.Request) (context.Context, e
 		return nil, unauthorizedError("Invalid token: %v", err)
 	}
 
-	newCtx := withToken(r.Context(), token)
+	requestConfig := *config
+	config = &requestConfig
+	newCtx := withConfig(withToken(r.Context(), token), config)
 	claims := getClaims(newCtx)
 
 	config.GitHub.Repo = ""
