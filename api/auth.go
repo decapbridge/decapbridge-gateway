@@ -115,6 +115,9 @@ func (a *API) parseJWTClaims(bearer string, r *http.Request) (context.Context, e
 		logrus.Info("Configure github request")
 		config.GitHub.Repo = repo
 		config.GitHub.AccessToken = accessToken
+		if hide, ok := claims.AppMetaData["hide_commit_author"].(bool); ok {
+			config.GitHub.HideCommitAuthor = hide
+		}
 	}
 
 	if gitProvider == "gitlab" {

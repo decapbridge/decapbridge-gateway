@@ -16,6 +16,7 @@ type GitHubConfig struct {
 	AccessToken string `envconfig:"ACCESS_TOKEN" json:"access_token,omitempty"`
 	Endpoint    string `envconfig:"ENDPOINT" json:"endpoint"`
 	Repo        string `envconfig:"REPO" json:"repo"` // Should be "owner/repo" format
+	HideCommitAuthor bool `envconfig:"HIDE_COMMIT_AUTHOR" json:"hide_commit_author,omitempty"`
 }
 
 type GitLabConfig struct {

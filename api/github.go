@@ -1,11 +1,16 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"strconv"
+	"strings"
 )
 
 // GitHubGateway acts as a proxy to GitHub
@@ -47,6 +52,10 @@ func director(r *http.Request) {
 	}
 	if r.Method != http.MethodOptions {
 		r.Header.Set("Authorization", "Bearer "+accessToken)
+	}
+
+	if config := getConfig(ctx); config != nil && config.GitHub.HideCommitAuthor && r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/git/commits") {
+		stripCommitAuthor(r)
 	}
 
 	log := getLogEntry(r)
@@ -109,6 +118,30 @@ func (gh *GitHubGateway) authenticate(w http.ResponseWriter, r *http.Request) er
 	}
 
 	return errors.New("Access to endpoint not allowed: your role doesn't allow access")
+}
+
+func stripCommitAuthor(r *http.Request) {
+	if r.Body == nil {
+		return
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	var payload map[string]interface{}
+	if json.Unmarshal(body, &payload) != nil {
+		return
+	}
+	delete(payload, "author")
+	delete(payload, "committer")
+	newBody, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewReader(newBody))
+	r.ContentLength = int64(len(newBody))
+	r.Header.Set("Content-Length", strconv.Itoa(len(newBody)))
 }
 
 type GitHubTransport struct{}
